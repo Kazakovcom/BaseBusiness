@@ -1,0 +1,7 @@
+*
+!.gitignore
+!database.sqlite
+!migrations/
+!migrations/*.php
+!seeders/
+!seeders/*.php
