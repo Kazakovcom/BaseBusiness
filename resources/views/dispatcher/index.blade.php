@@ -4,7 +4,6 @@
     <div class="card">
         <h2>Панель диспетчера</h2>
         <p>Пользователь: {{ $currentUser->name }}</p>
-        <p class="muted">Завершение заявки выполняется в рабочем процессе мастера.</p>
 
         @if (session('success'))
             <p class="status-success">{{ session('success') }}</p>
@@ -22,7 +21,7 @@
             </ul>
         @endif
 
-        <form method="GET" action="{{ route('dispatcher.dashboard') }}" style="margin-bottom: 1rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <form method="GET" action="{{ route('dispatcher.dashboard') }}" style="margin-bottom: 0.75rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <label for="status">Фильтр по статусу:</label>
             <select name="status" id="status">
                 <option value="">Все</option>
@@ -42,16 +41,15 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th style="min-width: 60px;">ID</th>
-                        <th style="min-width: 140px;">Клиент</th>
-                        <th style="min-width: 130px;">Телефон</th>
-                        <th style="min-width: 180px;">Адрес</th>
-                        <th style="min-width: 220px;">Проблема</th>
-                        <th style="min-width: 110px;">Статус</th>
-                        <th style="min-width: 150px;">Назначенный мастер</th>
-                        <th style="min-width: 150px;">Создана</th>
-                        <th style="min-width: 150px;">Обновлена</th>
-                        <th style="min-width: 180px;">Действия</th>
+                        <th style="width: 52px;">ID</th>
+                        <th style="width: 120px;">Клиент</th>
+                        <th style="width: 120px;">Телефон</th>
+                        <th style="width: 170px;">Адрес</th>
+                        <th style="width: 210px;">Проблема</th>
+                        <th style="width: 95px;">Статус</th>
+                        <th style="width: 130px;">Мастер</th>
+                        <th style="width: 180px;">Даты</th>
+                        <th style="width: 165px;">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -64,21 +62,20 @@
                             <td class="text-wrap">{{ $serviceRequest->problem_text }}</td>
                             <td>{{ \App\Enums\RequestStatus::tryFrom($serviceRequest->status)?->label() ?? $serviceRequest->status }}</td>
                             <td class="text-wrap">{{ $serviceRequest->assignedMaster?->name ?? '—' }}</td>
-                            <td>{{ $serviceRequest->created_at }}</td>
-                            <td>{{ $serviceRequest->updated_at }}</td>
+                            <td>
+                                <div><span class="hint">Создана:</span> {{ $serviceRequest->created_at?->format('d.m.Y H:i') }}</div>
+                                <div><span class="hint">Обновлена:</span> {{ $serviceRequest->updated_at?->format('d.m.Y H:i') }}</div>
+                            </td>
                             <td class="actions">
                                 @if ($serviceRequest->status === \App\Enums\RequestStatus::New->value)
                                     <form method="POST" action="{{ route('dispatcher.requests.assign', ['serviceRequest' => $serviceRequest, 'status' => $selectedStatus]) }}">
                                         @csrf
-                                        <label>
-                                            <span class="muted">Мастер:</span>
-                                            <select name="master_id" required>
-                                                <option value="">Выберите мастера</option>
-                                                @foreach ($masters as $master)
-                                                    <option value="{{ $master->id }}">{{ $master->name }}</option>
-                                                @endforeach
-                                            </select>
-                                        </label>
+                                        <select name="master_id" required style="max-width: 140px;">
+                                            <option value="">Мастер</option>
+                                            @foreach ($masters as $master)
+                                                <option value="{{ $master->id }}">{{ $master->name }}</option>
+                                            @endforeach
+                                        </select>
                                         <button type="submit">Назначить</button>
                                     </form>
                                 @endif
@@ -88,12 +85,16 @@
                                         @csrf
                                         <button type="submit">Отменить</button>
                                     </form>
+                                @elseif (in_array($serviceRequest->status, [\App\Enums\RequestStatus::InProgress->value, \App\Enums\RequestStatus::Done->value], true))
+                                    <span class="hint">Действия доступны в рабочем процессе мастера.</span>
+                                @else
+                                    <span class="hint">Нет доступных действий.</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10">Заявки не найдены.</td>
+                            <td colspan="9">Заявки не найдены.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -1128,3 +1128,66 @@ diff --git a/None b/tests/Feature/DispatcherPanelTest.php
 Please address any inline comments on the diff, as well as any additional instructions below.
 
 Перед любыми изменениями добавь этот полный запрос в PROMPTS.md с датой и временем.\n\nНужен polishing / fix pass только для stage 2.\nНе делай PR и не делай merge.\nНе переходи к панели мастера.\nНе добавляй диспетчеру действия, которые по ТЗ относятся к мастеру.\nНе реализуй перевод in_progress -> done из панели диспетчера.\n\nЦель этого этапа:\nулучшить stage 2 по UX, демо-данным и читаемости, не ломая ролевую модель задания.\n\nИсправь только следующее:\n\n1) Русификация интерфейса\nПриведи UI к единому русскому языку на страницах stage 1 + stage 2 там, где это уместно:\n- подписи\n- кнопки\n- flash-сообщения\n- служебный текст\n- отображение статусов в UI\n\nВажно:\n- внутренние enum/status values в коде и БД НЕ менять:\n  - new\n  - assigned\n  - in_progress\n  - done\n  - canceled\n- русифицировать нужно только отображение в интерфейсе, например:\n  - new => Новая\n  - assigned => Назначена\n  - in_progress => В работе\n  - done => Выполнена\n  - canceled => Отменена\n\n2) Улучшение панели диспетчера по вёрстке\nСделай таблицу/контейнер панели диспетчера аккуратнее, чтобы она не вылезала за рамку и была читаема.\nПодойдут простые решения без переусложнения:\n- overflow-x для контейнера таблицы\n- более аккуратные отступы\n- разумная ширина колонок\n- перенос длинного текста\n- компактные формы в колонке действий\n\nНе нужно подключать тяжёлый фронтенд.\nДостаточно аккуратного Blade + CSS в текущем стиле проекта.\n\n3) Демонстрационные данные для ручной проверки\nОбнови сид тестовых заявок так, чтобы после seed были представлены разные статусы для наглядной ручной проверки:\n- минимум одна new\n- минимум одна assigned\n- минимум одна in_progress\n- минимум одна done\n- минимум одна canceled\n\nВажно:\n- сиды должны остаться идемпотентными\n- не ломай текущую логику updateOrCreate\n- не создавай дубли при повторном запуске контейнера\n\n4) Панель диспетчера: поведение по статусам\nСохрани текущие правила:\n- assign доступен только для new\n- cancel доступен только для new и assigned\n- для in_progress / done / canceled никаких новых действий диспетчера не добавлять\n\n5) Дополнительная UX-подсказка\nЕсли уместно, на панели диспетчера можно коротко и спокойно указать, что:\n- завершение заявок относится к workflow мастера\n- этот этап будет реализован далее\nНо без лишнего текста и без упоминания внутренних этапов разработки.\n\n6) Автотесты\nНе ломай существующие тесты.\nПри необходимости обнови тесты только там, где это требуется из-за:\n- новых сидовых данных\n- русифицированного UI\nНо не меняй бизнес-правила.\n\n7) README.md\nОбнови README.md по фактам:\n- зафиксируй, что UI русифицирован на уровне отображения\n- перечисли, что в сидовых данных теперь есть заявки разных статусов для ручной проверки\n- не пиши, что диспетчер умеет завершать заявки\n- явно сохрани, что master workflow и race condition ещё впереди\n\n8) DECISIONS.md\nОбнови DECISIONS.md по фактам:\n- enum values остаются на английском в коде/БД, а UI показывает русские подписи\n- в панели диспетчера intentionally не добавляется перевод in_progress -> done, потому что это зона ответственности мастера по ТЗ\n- добавлены демонстрационные seed-данные для ручной проверки\n\n9) Важно\n- не добавляй диспетчеру кнопку “Выполнена”\n- не добавляй диспетчеру изменение in_progress -> done\n- не переходи к панели мастера\n- не реализуй race condition\n- не переписывай проект целиком\n\nВ конце покажи:\n1. список изменённых файлов\n2. полное содержимое ключевых файлов:\n   - resources/views/dispatcher/index.blade.php\n   - при необходимости resources/views/layouts/app.blade.php\n   - database/seeders/RequestSeeder.php\n   - если добавлен helper/mapper для статусов в UI — покажи его\n   - README.md\n   - DECISIONS.md\n3. отдельно кратко поясни:\n   - как теперь отображаются статусы в UI\n   - какие seed-данные добавлены\n   - почему диспетчер всё ещё не завершает заявку\n\nОстановись после этого этапа.
+
+## 2026-03-09 17:56:32 +0000
+
+The user was unsatisfied with the code that the agent previously produced, which can be found as the latest commit in the git history.
+
+<PREVIOUS_PR_TITLE>
+Implement dispatcher panel: controller, service, views, seeds and feature tests
+</PREVIOUS_PR_TITLE>
+
+<PREVIOUS_PR_DESCRIPTION>
+### Motivation
+- Provide a minimal Stage‑2 implementation of the dispatcher UI and server-side assign/cancel operations while keeping business rules out of Blade and preparing for the master workflow stage. 
+- Make the UI user-friendly and localized for manual verification and demo seeding. 
+
+### Description
+- Added `DispatcherController` and `DispatcherRequestService` to encapsulate dispatcher actions and the business rules (assign only from `new`, cancel only from `new` or `assigned`), and registered routes for listing, assigning and cancelling requests. 
+- Implemented `resources/views/dispatcher/index.blade.php`, updated `home.blade.php` and `layouts/app.blade.php` to Russian UI, added CSS tweaks for table layout and flash messages, and made role/status labels user‑friendly by adding `label()` helpers to `RequestStatus` and `UserRole` enums. 
+- Extended `database/seeders/RequestSeeder.php` with idempotent demo requests covering `new`, `assigned`, `in_progress`, `done` and `canceled` statuses. 
+- Added feature tests `tests/Feature/DispatcherPanelTest.php` covering list+filter, assign, cancel and negative transition scenarios, and updated `README.md` and `DECISIONS.md` to reflect implemented rules and demo data. 
+
+### Testing
+- Performed PHP syntax checks (`php -l`) and basic static checks on added files which reported no syntax errors. 
+- Verified route wiring with `php artisan route:list` in the local container and it reported dispatcher routes. 
+- `tests/Feature/HomePageTest.php` ran successfully in the local quick check. 
+- Full test suite (`php artisan test`) was not executed in this environment because `vendor` is missing and `composer install` could not be completed here; `tests/Feature/DispatcherPanelTest.php` was added and is syntactically valid but its execution is pending once dev dependencies are installed (note: earlier `tests/Feature/ServiceRequestCreationTest.php` had failed with `Class "Mockery" not found` before dev dependencies were addressed).
+</PREVIOUS_PR_DESCRIPTION>
+
+<PREVIOUS_PR_DIFF_AND_COMMENTS>
+diff --git a/DECISIONS.md b/DECISIONS.md
+(File changed with 33 additions, 16 deletions)
+diff --git a/PROMPTS.md b/PROMPTS.md
+(File changed with 276 additions, 0 deletions)
+diff --git a/README.md b/README.md
+(File changed with 61 additions, 29 deletions)
+diff --git a/app/Enums/RequestStatus.php b/app/Enums/RequestStatus.php
+(File changed with 11 additions, 0 deletions)
+diff --git a/app/Enums/UserRole.php b/app/Enums/UserRole.php
+(File changed with 8 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/DispatcherController.php
+(File changed with 66 additions, 0 deletions)
+diff --git a/None b/app/Services/DispatcherRequestService.php
+(File changed with 54 additions, 0 deletions)
+diff --git a/database/seeders/RequestSeeder.php b/database/seeders/RequestSeeder.php
+(File changed with 26 additions, 0 deletions)
+diff --git a/resources/views/auth/login.blade.php b/resources/views/auth/login.blade.php
+(File changed with 3 additions, 1 deletions)
+diff --git a/resources/views/dispatcher/index.blade.php b/resources/views/dispatcher/index.blade.php
+(File changed with 95 additions, 1 deletions)
+diff --git a/resources/views/home.blade.php b/resources/views/home.blade.php
+(File changed with 7 additions, 3 deletions)
+diff --git a/resources/views/layouts/app.blade.php b/resources/views/layouts/app.blade.php
+(File changed with 12 additions, 4 deletions)
+diff --git a/resources/views/master/index.blade.php b/resources/views/master/index.blade.php
+(File changed with 1 additions, 1 deletions)
+diff --git a/routes/web.php b/routes/web.php
+(File changed with 4 additions, 1 deletions)
+diff --git a/None b/tests/Feature/DispatcherPanelTest.php
+(File changed with 179 additions, 0 deletions)
+</PREVIOUS_PR_DIFF_AND_COMMENTS>
+
+Please address any inline comments on the diff, as well as any additional instructions below.
+
+Перед любыми изменениями добавь этот полный запрос в PROMPTS.md с датой и временем.\n\nНужен узкий corrective pass для stage 2.\nНе делай PR и не делай merge.\nНе переходи к панели мастера.\nНе добавляй диспетчеру перевод заявки в done.\nНе меняй бизнес-правила assign/cancel.\n\nИсправь только следующие вещи:\n\n1) Почини упавший feature-тест DispatcherPanelTest\nСейчас тест фильтрации сломан, потому что assertDontSee использует слишком общую строку, которая теперь встречается в UI отдельно от строки таблицы.\nНужно:\n- исправить test_dispatcher_sees_requests_and_can_filter_by_status\n- не проверять отсутствие слишком общей строки типа "В работе"\n- проверять отсутствие/наличие уникальных данных именно нужной заявки, например:\n  - client_name\n  - phone\n  - address\n  - problem_text\n- тест должен стать устойчивым к русификации UI и наличию labels в фильтре\n\n2) Доведи русификацию пользователей и ролей в интерфейсе\nНужно, чтобы в UI не было кривой смеси английского и русского там, где это пользовательский текст.\nИсправь:\n- login page dropdown\n- отображение ролей пользователей\n- seed display names, если это требуется для нормального русского UI\n\nОжидаемый результат:\n- имена тестовых пользователей в интерфейсе выглядят нормально и читаемо\n- роли в интерфейсе отображаются на русском\n- email в README остаются теми же, если это уже используется как идентификатор\n\nВажно:\n- не ломай сиды\n- не меняй email тестовых пользователей без крайней необходимости\n\n3) Улучши UX панели диспетчера без смены бизнес-логики\nСейчас таблица неудобна и требует сильного горизонтального скролла.\nНужно улучшить читаемость на обычном desktop-экране.\n\nДопустимые решения:\n- увеличить полезную ширину layout\n- сделать таблицу компактнее\n- сократить ширины колонок\n- форматировать даты компактно\n- объединить created_at / updated_at в более компактное отображение, если нужно\n- сделать действия визуально компактнее\n- уменьшить количество “визуального шума”\n\nВажно:\n- все обязательные данные заявки должны остаться видимыми\n- не переходить на тяжёлый фронтенд\n- не ломать существующие страницы stage 1\n\n4) Сделай понятное отображение для заявок без доступных действий\nДля статусов:\n- in_progress\n- done\n- canceled\n\nне добавляй новых активных действий диспетчеру.\n\nНо в колонке действий не должна быть пустота.\nСделай понятный UX-вариант, например:\n- "Действия недоступны"\nили\n- "Доступно только мастеру"\nили\n- "Нет доступных действий"\n\nДля done / in_progress отдельно уместно указать, что завершение относится к workflow мастера.\nДля canceled можно просто показать, что действий нет.\n\nВажно:\n- это только UI/UX-объяснение\n- не добавляй POST-действия для диспетчера на эти статусы\n- не меняй бизнес-правила assign/cancel\n\n5) README.md и DECISIONS.md\nОбнови только если изменения реально затрагивают:\n- русификацию пользователей/ролей в UI\n- логику отображения недоступных действий\n- улучшение таблицы/представления\n\nНе переписывай документы полностью.\n\n6) Важно\n- не меняй маршруты без необходимости\n- не меняй service/controller-логику assign/cancel без необходимости\n- не переходи к панели мастера\n- не реализуй race condition\n- не добавляй диспетчеру завершение заявки\n\nВ конце покажи:\n1. список изменённых файлов\n2. полное содержимое:\n   - tests/Feature/DispatcherPanelTest.php\n   - resources/views/auth/login.blade.php\n   - resources/views/dispatcher/index.blade.php\n   - resources/views/layouts/app.blade.php\n   - если менялся UserSeeder, покажи его\n   - README.md и DECISIONS.md, только если они реально менялись\n3. отдельно кратко поясни:\n   - как именно починен тест\n   - как теперь отображаются пользователи/роли\n   - как теперь объясняется отсутствие действий у done / in_progress / canceled\n\nОстановись после этого этапа.

@@ -7,10 +7,10 @@
             @csrf
             <label for="user_id">Выберите пользователя:</label>
             <select id="user_id" name="user_id" required>
-                <option value="">-- Выберите --</option>
+                <option value="">— Выберите —</option>
                 @foreach($users as $user)
                     <option value="{{ $user->id }}">
-                        {{ $user->name }} ({{ \App\Enums\UserRole::tryFrom($user->role)?->label() ?? $user->role }})
+                        {{ $user->name }} — {{ \App\Enums\UserRole::tryFrom($user->role)?->label() ?? $user->role }}
                     </option>
                 @endforeach
             </select>

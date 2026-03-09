@@ -16,7 +16,7 @@ class DispatcherPanelTest extends TestCase
     public function test_dispatcher_sees_requests_and_can_filter_by_status(): void
     {
         $dispatcher = User::query()->create([
-            'name' => 'Dispatcher',
+            'name' => 'Диспетчер Тест',
             'email' => 'dispatcher@test.local',
             'role' => UserRole::Dispatcher->value,
         ]);
@@ -30,7 +30,7 @@ class DispatcherPanelTest extends TestCase
         ]);
 
         ServiceRequest::query()->create([
-            'client_name' => 'В работе',
+            'client_name' => 'Заявка в процессе',
             'phone' => '+7 222 222-22-22',
             'address' => 'Адрес 2',
             'problem_text' => 'Проблема 2',
@@ -40,12 +40,20 @@ class DispatcherPanelTest extends TestCase
         $allResponse = $this->withSession(['auth_user_id' => $dispatcher->id])->get('/dispatcher');
         $allResponse->assertOk();
         $allResponse->assertSee('Новая заявка');
-        $allResponse->assertSee('В работе');
+        $allResponse->assertSee('Заявка в процессе');
+        $allResponse->assertSee('+7 111 111-11-11');
+        $allResponse->assertSee('+7 222 222-22-22');
 
         $filteredResponse = $this->withSession(['auth_user_id' => $dispatcher->id])->get('/dispatcher?status='.RequestStatus::New->value);
         $filteredResponse->assertOk();
         $filteredResponse->assertSee('Новая заявка');
-        $filteredResponse->assertDontSee('В работе');
+        $filteredResponse->assertSee('+7 111 111-11-11');
+        $filteredResponse->assertSee('Адрес 1');
+        $filteredResponse->assertSee('Проблема 1');
+        $filteredResponse->assertDontSee('Заявка в процессе');
+        $filteredResponse->assertDontSee('+7 222 222-22-22');
+        $filteredResponse->assertDontSee('Адрес 2');
+        $filteredResponse->assertDontSee('Проблема 2');
     }
 
     public function test_dispatcher_can_assign_master_for_new_request(): void
