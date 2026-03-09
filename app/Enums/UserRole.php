@@ -11,4 +11,12 @@ enum UserRole: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Dispatcher => 'Диспетчер',
+            self::Master => 'Мастер',
+        };
+    }
 }

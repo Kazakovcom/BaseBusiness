@@ -52,5 +52,31 @@ class RequestSeeder extends Seeder
                 'assigned_to' => $secondMaster?->id,
             ]
         );
+
+        ServiceRequest::query()->updateOrCreate(
+            [
+                'client_name' => 'Елена Кузнецова',
+                'phone' => '+7 900 444-55-66',
+                'address' => 'Москва, ул. Арбат, д. 12',
+            ],
+            [
+                'problem_text' => 'Замена розетки выполнена',
+                'status' => RequestStatus::Done->value,
+                'assigned_to' => $firstMaster?->id,
+            ]
+        );
+
+        ServiceRequest::query()->updateOrCreate(
+            [
+                'client_name' => 'Дмитрий Соколов',
+                'phone' => '+7 900 555-66-77',
+                'address' => 'Москва, ул. Мира, д. 21',
+            ],
+            [
+                'problem_text' => 'Клиент отменил выезд мастера',
+                'status' => RequestStatus::Canceled->value,
+                'assigned_to' => null,
+            ]
+        );
     }
 }

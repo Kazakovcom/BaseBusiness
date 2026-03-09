@@ -9,7 +9,9 @@
             <select id="user_id" name="user_id" required>
                 <option value="">-- Выберите --</option>
                 @foreach($users as $user)
-                    <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->role }})</option>
+                    <option value="{{ $user->id }}">
+                        {{ $user->name }} ({{ \App\Enums\UserRole::tryFrom($user->role)?->label() ?? $user->role }})
+                    </option>
                 @endforeach
             </select>
             <button type="submit">Войти</button>

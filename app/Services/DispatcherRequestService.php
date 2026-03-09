@@ -12,7 +12,7 @@ class DispatcherRequestService
         if ($serviceRequest->status !== RequestStatus::New->value) {
             return [
                 'ok' => false,
-                'message' => 'Назначение возможно только для заявок в статусе new.',
+                'message' => 'Назначение возможно только для новой заявки.',
             ];
         }
 
@@ -37,7 +37,7 @@ class DispatcherRequestService
         if (! in_array($serviceRequest->status, $cancelableStatuses, true)) {
             return [
                 'ok' => false,
-                'message' => 'Отмена возможна только для заявок в статусах new или assigned.',
+                'message' => 'Отмена возможна только для новых или назначенных заявок.',
             ];
         }
 
