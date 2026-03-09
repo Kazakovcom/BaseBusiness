@@ -705,3 +705,150 @@ Please address any inline comments on the diff, as well as any additional instru
 
 ### Краткое назначение
 Точечно исправить runtime-директории Laravel для стабильного запуска Docker (`bootstrap/cache` и `storage/*`).
+
+## 2026-03-09 15:10:03 UTC
+### Полный текст запроса
+The user was unsatisfied with the code that the agent previously produced, which can be found as the latest commit in the git history.
+
+<PREVIOUS_PR_TITLE>
+Add Laravel 12 baseline scaffold: Docker, SQLite, ServiceRequest, idempotent seeders and tests
+</PREVIOUS_PR_TITLE>
+
+<PREVIOUS_PR_DESCRIPTION>
+### Motivation
+- Provide a runnable minimal Laravel-12-compatible baseline for the test assignment with local startup via Docker Compose and SQLite as the default DB. 
+- Prepare the domain for service requests under the safe name `ServiceRequest` to avoid collision with `Illuminate\Http\Request` and allow a next-step implementation of business logic. 
+- Ensure repeated container startups are safe by making seeders idempotent and `docker/php/start.sh` conservative about `APP_KEY` and filesystem runtime directories. 
+
+### Description
+- Added project bootstrap and runtime files including `public/index.php`, `bootstrap/app.php`, `bootstrap/providers.php`, `app/Providers/AppServiceProvider.php`, `artisan`, `composer.json`, configs in `config/`, and `.env.example`/`.gitignore` to form a minimal Laravel-compatible application. 
+- Implemented domain pieces and API surface: enums `App\Enums\UserRole`/`RequestStatus`, models `App\Models\User` and `App\Models\ServiceRequest`, migrations for `users` and `requests`, idempotent seeders `DatabaseSeeder`, `UserSeeder`, `RequestSeeder`, controllers `AuthController`/`DashboardController`/`ServiceRequestController`, and middlewares `EnsureAuthenticated`/`EnsureRole`. 
+- Added web routes in `routes/web.php` with public `GET /requests/create` and `POST /requests`, Blade views for `home`, `login`, dispatcher/master placeholders and request creation, and view layout in `resources/views/layouts/app.blade.php`. 
+- Added Docker integration: `docker-compose.yml`, `docker/php/Dockerfile` and `docker/php/start.sh` which ensure `.env`, `database/database.sqlite`, runtime dirs (`bootstrap/cache`, `storage/*`), conditional `APP_KEY` generation, conditional `composer install`, and run `php artisan migrate --seed` before `php artisan serve`. 
+- Added test scaffolding and automation helpers: `phpunit.xml`, `tests/Feature/HomePageTest.php`, `tests/Feature/ServiceRequestCreationTest.php`, and test bootstrap traits. 
+
+### Testing
+- No automated tests were executed in this rollout environment because container runtime and vendor dependencies were not available here, so `phpunit`/`php artisan test` were not run. 
+- The repository contains two feature tests (`tests/Feature/HomePageTest.php` and `tests/Feature/ServiceRequestCreationTest.php`) prepared for local execution and a `phpunit.xml` configured to use in-memory SQLite for CI/local runs. 
+- The `docker/php/start.sh` script and seeders were modified to be idempotent so that repeated `docker compose up --build` runs perform `composer install`, conditional key generation and `php artisan migrate --seed` without failing due to duplicates or unconditional `APP_KEY` regeneration.
+</PREVIOUS_PR_DESCRIPTION>
+
+<PREVIOUS_PR_DIFF_AND_COMMENTS>
+diff --git a/None b/.env.example
+(File changed with 12 additions, 0 deletions)
+diff --git a/None b/.gitignore
+(File changed with 5 additions, 0 deletions)
+diff --git a/None b/DECISIONS.md
+(File changed with 24 additions, 0 deletions)
+diff --git a/None b/PROMPTS.md
+(File changed with 707 additions, 0 deletions)
+diff --git a/None b/README.md
+(File changed with 57 additions, 0 deletions)
+diff --git a/None b/app/Enums/RequestStatus.php
+(File changed with 17 additions, 0 deletions)
+diff --git a/None b/app/Enums/UserRole.php
+(File changed with 14 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/AuthController.php
+(File changed with 40 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/Controller.php
+(File changed with 8 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/DashboardController.php
+(File changed with 35 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/ServiceRequestController.php
+(File changed with 35 additions, 0 deletions)
+diff --git a/None b/app/Http/Middleware/EnsureAuthenticated.php
+(File changed with 20 additions, 0 deletions)
+diff --git a/None b/app/Http/Middleware/EnsureRole.php
+(File changed with 26 additions, 0 deletions)
+diff --git a/None b/app/Models/ServiceRequest.php
+(File changed with 28 additions, 0 deletions)
+diff --git a/None b/app/Models/User.php
+(File changed with 23 additions, 0 deletions)
+diff --git a/None b/app/Providers/AppServiceProvider.php
+(File changed with 18 additions, 0 deletions)
+diff --git a/None b/artisan
+(File changed with 16 additions, 0 deletions)
+diff --git a/None b/bootstrap/app.php
+(File changed with 23 additions, 0 deletions)
+diff --git a/None b/bootstrap/cache/.gitignore
+(File changed with 2 additions, 0 deletions)
+diff --git a/None b/bootstrap/providers.php
+(File changed with 5 additions, 0 deletions)
+diff --git a/None b/composer.json
+(File changed with 36 additions, 0 deletions)
+diff --git a/None b/config/app.php
+(File changed with 14 additions, 0 deletions)
+diff --git a/None b/config/auth.php
+(File changed with 20 additions, 0 deletions)
+diff --git a/None b/config/database.php
+(File changed with 17 additions, 0 deletions)
+diff --git a/None b/config/session.php
+(File changed with 15 additions, 0 deletions)
+diff --git a/None b/database/.gitignore
+(File changed with 7 additions, 0 deletions)
+diff --git a/None b/database/migrations/2026_03_09_000000_create_users_table.php
+(File changed with 23 additions, 0 deletions)
+diff --git a/None b/database/migrations/2026_03_09_000100_create_requests_table.php
+(File changed with 26 additions, 0 deletions)
+diff --git a/None b/database/seeders/DatabaseSeeder.php
+(File changed with 16 additions, 0 deletions)
+diff --git a/None b/database/seeders/RequestSeeder.php
+(File changed with 56 additions, 0 deletions)
+diff --git a/None b/database/seeders/UserSeeder.php
+(File changed with 28 additions, 0 deletions)
+diff --git a/None b/docker-compose.yml
+(File changed with 11 additions, 0 deletions)
+diff --git a/None b/docker/php/Dockerfile
+(File changed with 14 additions, 0 deletions)
+diff --git a/None b/docker/php/start.sh
+(File changed with 36 additions, 0 deletions)
+diff --git a/None b/phpunit.xml
+(File changed with 17 additions, 0 deletions)
+diff --git a/None b/public/index.php
+(File changed with 12 additions, 0 deletions)
+diff --git a/None b/resources/views/auth/login.blade.php
+(File changed with 18 additions, 0 deletions)
+diff --git a/None b/resources/views/dispatcher/index.blade.php
+(File changed with 9 additions, 0 deletions)
+diff --git a/None b/resources/views/home.blade.php
+(File changed with 11 additions, 0 deletions)
+diff --git a/None b/resources/views/layouts/app.blade.php
+(File changed with 25 additions, 0 deletions)
+diff --git a/None b/resources/views/master/index.blade.php
+(File changed with 9 additions, 0 deletions)
+diff --git a/None b/resources/views/requests/create.blade.php
+(File changed with 40 additions, 0 deletions)
+diff --git a/None b/routes/console.php
+(File changed with 7 additions, 0 deletions)
+diff --git a/None b/routes/web.php
+(File changed with 23 additions, 0 deletions)
+diff --git a/None b/storage/app/.gitignore
+(File changed with 2 additions, 0 deletions)
+diff --git a/None b/storage/framework/.gitignore
+(File changed with 5 additions, 0 deletions)
+diff --git a/None b/storage/framework/cache/.gitignore
+(File changed with 3 additions, 0 deletions)
+diff --git a/None b/storage/framework/cache/data/.gitignore
+(File changed with 2 additions, 0 deletions)
+diff --git a/None b/storage/framework/sessions/.gitignore
+(File changed with 2 additions, 0 deletions)
+diff --git a/None b/storage/framework/views/.gitignore
+(File changed with 2 additions, 0 deletions)
+diff --git a/None b/storage/logs/.gitignore
+(File changed with 2 additions, 0 deletions)
+diff --git a/None b/tests/CreatesApplication.php
+(File changed with 17 additions, 0 deletions)
+diff --git a/None b/tests/Feature/HomePageTest.php
+(File changed with 15 additions, 0 deletions)
+diff --git a/None b/tests/Feature/ServiceRequestCreationTest.php
+(File changed with 34 additions, 0 deletions)
+diff --git a/None b/tests/TestCase.php
+(File changed with 10 additions, 0 deletions)
+</PREVIOUS_PR_DIFF_AND_COMMENTS>
+
+Please address any inline comments on the diff, as well as any additional instructions below.
+
+Перед изменениями добавь этот полный запрос в PROMPTS.md с датой и временем.\n\nНужен короткий corrective pass только по test/dev dependencies. Не делай PR и не делай merge.\n\nЛокальная проверка уже дала такие факты:\n- контейнер app поднимается;\n- php artisan route:list работает;\n- tests/Feature/HomePageTest.php проходит;\n- tests/Feature/ServiceRequestCreationTest.php падает с ошибкой:\n  Class "Mockery" not found\n- php artisan test ранее был недоступен.\n\nИсправь проект как минимально корректный Laravel baseline для локальной проверки тестов.\n\nСделай следующее:\n\n1. Обнови composer.json require-dev так, чтобы тестовая среда была полноценнее.\n2. Добавь минимум то, что нужно для:\n   - работы Mockery в feature tests\n   - нормального запуска тестов\n   - по возможности восстановления команды php artisan test\n3. Не трогай бизнес-логику.\n4. Не меняй маршруты, контроллеры и views без необходимости.\n5. Не меняй миграции/сиды без необходимости.\n\nВ конце покажи целиком:\n- composer.json\n- phpunit.xml\n- если изменится, то tests/TestCase.php\n- если изменится, то tests/CreatesApplication.php\n- README.md, если туда нужно добавить короткое примечание по локальной проверке\n\nОтдельно кратко ответь:\n- почему HomePageTest проходил, а ServiceRequestCreationTest падал;\n- какая зависимость(и) были нужны;\n- должен ли после этого работать php artisan test.
+
+### Краткое назначение
+Точечная правка test/dev зависимостей для восстановления локального запуска feature-тестов и Mockery.
