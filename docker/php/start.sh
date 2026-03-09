@@ -10,6 +10,17 @@ if [ ! -f database/database.sqlite ]; then
   touch database/database.sqlite
 fi
 
+mkdir -p \
+  bootstrap/cache \
+  storage/app \
+  storage/framework/cache \
+  storage/framework/cache/data \
+  storage/framework/sessions \
+  storage/framework/views \
+  storage/logs
+
+chmod -R ug+rwX storage bootstrap/cache
+
 if [ ! -f vendor/autoload.php ]; then
   composer install --no-interaction --prefer-dist
 fi

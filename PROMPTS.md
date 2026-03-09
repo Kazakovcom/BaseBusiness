@@ -575,3 +575,133 @@ Please address any inline comments on the diff, as well as any additional instru
 
 ### Краткое назначение
 Точечно убрать проблемы повторного старта контейнера: безопасный APP_KEY и идемпотентные сиды.
+
+## 2026-03-09 14:26:27 UTC
+### Полный текст запроса
+The user was unsatisfied with the code that the agent previously produced, which can be found as the latest commit in the git history.
+
+<PREVIOUS_PR_TITLE>
+Add Laravel 12 scaffold: Docker, SQLite, migrations, seeders, simple auth and request creation
+</PREVIOUS_PR_TITLE>
+
+<PREVIOUS_PR_DESCRIPTION>
+### Motivation
+- Provide a minimal, runnable Laravel 12 baseline scaffold for the test assignment with local startup via Docker Compose and SQLite as the default DB.
+- Prepare domain and persistence for service requests under a safe name `ServiceRequest` to avoid collision with `Illuminate\Http\Request`. 
+- Support an incremental workflow: simple auth-by-choice, a public create-request screen and idempotent startup/seed behavior so the project can be started repeatedly during local development.
+
+### Description
+- Added a full minimal app scaffold including `public/index.php`, `bootstrap/app.php`, `bootstrap/providers.php`, `app/Providers/AppServiceProvider.php`, and core config files so the repository can serve as a lightweight Laravel-compatible project. 
+- Implemented domain pieces: enums `App\Enums\UserRole` and `App\Enums\RequestStatus`, models `App\Models\User` and `App\Models\ServiceRequest`, migrations for `users` and `requests`, and seeders `DatabaseSeeder`, `UserSeeder`, and `RequestSeeder` that use `updateOrCreate` to be idempotent. 
+- Implemented web flow: controllers `AuthController`, `DashboardController`, `ServiceRequestController` with server-side validation for request creation (`client_name`, `phone`, `address`, `problem_text`), routes in `routes/web.php` including public `GET /requests/create` and `POST /requests`, middleware `EnsureAuthenticated` and `EnsureRole`, and Blade views for home, login, dispatcher, master and request creation. 
+- Added Docker integration with `docker-compose.yml`, `docker/php/Dockerfile` and a safe `docker/php/start.sh` that conditionally creates `.env`, ensures `database/database.sqlite`, runs `composer install` if needed, generates `APP_KEY` only when missing, runs `php artisan migrate --seed`, and starts the built-in server; added `phpunit.xml` and two feature tests `tests/Feature/HomePageTest.php` and `tests/Feature/ServiceRequestCreationTest.php` for local verification. 
+
+### Testing
+- Two feature tests were added: `tests/Feature/HomePageTest.php` and `tests/Feature/ServiceRequestCreationTest.php`, and are configured to run locally via `phpunit`/`artisan test`. 
+- No automated tests were executed in this rollout environment due to missing installed dependencies and lack of container runtime, so test execution is left for local verification. 
+- The Docker start script and seeders were made idempotent so repeated `docker compose up --build` runs should not fail due to duplicate seed data or unconditional `APP_KEY` regeneration.
+</PREVIOUS_PR_DESCRIPTION>
+
+<PREVIOUS_PR_DIFF_AND_COMMENTS>
+diff --git a/None b/.env.example
+(File changed with 12 additions, 0 deletions)
+diff --git a/None b/.gitignore
+(File changed with 5 additions, 0 deletions)
+diff --git a/None b/DECISIONS.md
+(File changed with 24 additions, 0 deletions)
+diff --git a/None b/PROMPTS.md
+(File changed with 577 additions, 0 deletions)
+diff --git a/None b/README.md
+(File changed with 57 additions, 0 deletions)
+diff --git a/None b/app/Enums/RequestStatus.php
+(File changed with 17 additions, 0 deletions)
+diff --git a/None b/app/Enums/UserRole.php
+(File changed with 14 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/AuthController.php
+(File changed with 40 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/Controller.php
+(File changed with 8 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/DashboardController.php
+(File changed with 35 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/ServiceRequestController.php
+(File changed with 35 additions, 0 deletions)
+diff --git a/None b/app/Http/Middleware/EnsureAuthenticated.php
+(File changed with 20 additions, 0 deletions)
+diff --git a/None b/app/Http/Middleware/EnsureRole.php
+(File changed with 26 additions, 0 deletions)
+diff --git a/None b/app/Models/ServiceRequest.php
+(File changed with 28 additions, 0 deletions)
+diff --git a/None b/app/Models/User.php
+(File changed with 23 additions, 0 deletions)
+diff --git a/None b/app/Providers/AppServiceProvider.php
+(File changed with 18 additions, 0 deletions)
+diff --git a/None b/artisan
+(File changed with 16 additions, 0 deletions)
+diff --git a/None b/bootstrap/app.php
+(File changed with 23 additions, 0 deletions)
+diff --git a/None b/bootstrap/providers.php
+(File changed with 5 additions, 0 deletions)
+diff --git a/None b/composer.json
+(File changed with 36 additions, 0 deletions)
+diff --git a/None b/config/app.php
+(File changed with 14 additions, 0 deletions)
+diff --git a/None b/config/auth.php
+(File changed with 20 additions, 0 deletions)
+diff --git a/None b/config/database.php
+(File changed with 17 additions, 0 deletions)
+diff --git a/None b/config/session.php
+(File changed with 15 additions, 0 deletions)
+diff --git a/None b/database/.gitignore
+(File changed with 7 additions, 0 deletions)
+diff --git a/None b/database/migrations/2026_03_09_000000_create_users_table.php
+(File changed with 23 additions, 0 deletions)
+diff --git a/None b/database/migrations/2026_03_09_000100_create_requests_table.php
+(File changed with 26 additions, 0 deletions)
+diff --git a/None b/database/seeders/DatabaseSeeder.php
+(File changed with 16 additions, 0 deletions)
+diff --git a/None b/database/seeders/RequestSeeder.php
+(File changed with 56 additions, 0 deletions)
+diff --git a/None b/database/seeders/UserSeeder.php
+(File changed with 28 additions, 0 deletions)
+diff --git a/None b/docker-compose.yml
+(File changed with 11 additions, 0 deletions)
+diff --git a/None b/docker/php/Dockerfile
+(File changed with 14 additions, 0 deletions)
+diff --git a/None b/docker/php/start.sh
+(File changed with 25 additions, 0 deletions)
+diff --git a/None b/phpunit.xml
+(File changed with 17 additions, 0 deletions)
+diff --git a/None b/public/index.php
+(File changed with 12 additions, 0 deletions)
+diff --git a/None b/resources/views/auth/login.blade.php
+(File changed with 18 additions, 0 deletions)
+diff --git a/None b/resources/views/dispatcher/index.blade.php
+(File changed with 9 additions, 0 deletions)
+diff --git a/None b/resources/views/home.blade.php
+(File changed with 11 additions, 0 deletions)
+diff --git a/None b/resources/views/layouts/app.blade.php
+(File changed with 25 additions, 0 deletions)
+diff --git a/None b/resources/views/master/index.blade.php
+(File changed with 9 additions, 0 deletions)
+diff --git a/None b/resources/views/requests/create.blade.php
+(File changed with 40 additions, 0 deletions)
+diff --git a/None b/routes/console.php
+(File changed with 7 additions, 0 deletions)
+diff --git a/None b/routes/web.php
+(File changed with 23 additions, 0 deletions)
+diff --git a/None b/tests/CreatesApplication.php
+(File changed with 17 additions, 0 deletions)
+diff --git a/None b/tests/Feature/HomePageTest.php
+(File changed with 15 additions, 0 deletions)
+diff --git a/None b/tests/Feature/ServiceRequestCreationTest.php
+(File changed with 34 additions, 0 deletions)
+diff --git a/None b/tests/TestCase.php
+(File changed with 10 additions, 0 deletions)
+</PREVIOUS_PR_DIFF_AND_COMMENTS>
+
+Please address any inline comments on the diff, as well as any additional instructions below.
+
+Перед изменениями добавь этот полный запрос в PROMPTS.md с датой и временем.\n\nНужен короткий corrective pass по runtime-директориям Laravel. Не делай PR и не делай merge.\n\nПроблема:\nпри локальном запуске Docker контейнер падает на composer install / package:discover с ошибкой:\n"The /var/www/html/bootstrap/cache directory must be present and writable."\n\nИсправь это как для реального минимального Laravel baseline.\n\nСделай следующее:\n\n1. Добавь в репозиторий недостающие runtime/directories и placeholder-файлы:\n- bootstrap/cache/.gitignore\n- storage/app/.gitignore\n- storage/framework/.gitignore\n- storage/framework/cache/.gitignore\n- storage/framework/cache/data/.gitignore\n- storage/framework/sessions/.gitignore\n- storage/framework/views/.gitignore\n- storage/logs/.gitignore\n\n2. Обнови docker/php/start.sh:\n- перед composer install и artisan-командами создавай нужные директории:\n  - bootstrap/cache\n  - storage/app\n  - storage/framework/cache\n  - storage/framework/cache/data\n  - storage/framework/sessions\n  - storage/framework/views\n  - storage/logs\n- если нужно, выставь безопасные права на запись для storage и bootstrap/cache\n\n3. Ничего лишнего не меняй.\n4. Не трогай бизнес-логику.\n5. Не меняй маршруты, контроллеры и тесты без необходимости.\n\nВ конце покажи целиком:\n- docker/php/start.sh\n- список всех новых директорий/файлов-заглушек\n- обновлённый README.md, если ты туда добавишь примечание\n\nОтдельно кратко ответь:\n- почему контейнер падал раньше;\n- почему теперь composer install / package:discover не должен падать на bootstrap/cache.
+
+### Краткое назначение
+Точечно исправить runtime-директории Laravel для стабильного запуска Docker (`bootstrap/cache` и `storage/*`).
