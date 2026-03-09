@@ -44,6 +44,16 @@
   - `assigned_to` очищается в `null`.
 - Если операция недопустима для текущего статуса, в интерфейсе показывается понятная ошибка.
 
+
+## Тестовые пользователи
+- Dispatcher: `dispatcher@example.com`
+- Master: `master1@example.com`
+- Master: `master2@example.com`
+
+Вход выполняется через страницу `/login` выбором пользователя из списка:
+- для роли диспетчера используйте `dispatcher@example.com`;
+- для роли мастера используйте `master1@example.com` или `master2@example.com`.
+
 ## Автотесты
 - `tests/Feature/HomePageTest.php` — доступность главной страницы.
 - `tests/Feature/ServiceRequestCreationTest.php` — создание заявки со статусом `new`.

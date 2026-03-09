@@ -101,13 +101,19 @@ class DispatcherPanelTest extends TestCase
             'status' => RequestStatus::New->value,
         ]);
 
+        $assignedMaster = User::query()->create([
+            'name' => 'Assigned Master',
+            'email' => 'assigned.master.cancel@test.local',
+            'role' => UserRole::Master->value,
+        ]);
+
         $assignedRequest = ServiceRequest::query()->create([
             'client_name' => 'Клиент 2',
             'phone' => '+7 555 555-55-55',
             'address' => 'Адрес 5',
             'problem_text' => 'Проблема 5',
             'status' => RequestStatus::Assigned->value,
-            'assigned_to' => $dispatcher->id,
+            'assigned_to' => $assignedMaster->id,
         ]);
 
         $this->withSession(['auth_user_id' => $dispatcher->id])
