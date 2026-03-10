@@ -10,7 +10,7 @@
                 <option value="">— Выберите —</option>
                 @foreach($users as $user)
                     <option value="{{ $user->id }}">
-                        {{ $user->name }} — {{ \App\Enums\UserRole::tryFrom($user->role)?->label() ?? $user->role }}
+                        {{ $user->name }} ({{ \Illuminate\Support\Str::lower(\App\Enums\UserRole::tryFrom($user->role)?->label() ?? $user->role) }})
                     </option>
                 @endforeach
             </select>

@@ -1191,3 +1191,70 @@ diff --git a/None b/tests/Feature/DispatcherPanelTest.php
 Please address any inline comments on the diff, as well as any additional instructions below.
 
 Перед любыми изменениями добавь этот полный запрос в PROMPTS.md с датой и временем.\n\nНужен узкий corrective pass для stage 2.\nНе делай PR и не делай merge.\nНе переходи к панели мастера.\nНе добавляй диспетчеру перевод заявки в done.\nНе меняй бизнес-правила assign/cancel.\n\nИсправь только следующие вещи:\n\n1) Почини упавший feature-тест DispatcherPanelTest\nСейчас тест фильтрации сломан, потому что assertDontSee использует слишком общую строку, которая теперь встречается в UI отдельно от строки таблицы.\nНужно:\n- исправить test_dispatcher_sees_requests_and_can_filter_by_status\n- не проверять отсутствие слишком общей строки типа "В работе"\n- проверять отсутствие/наличие уникальных данных именно нужной заявки, например:\n  - client_name\n  - phone\n  - address\n  - problem_text\n- тест должен стать устойчивым к русификации UI и наличию labels в фильтре\n\n2) Доведи русификацию пользователей и ролей в интерфейсе\nНужно, чтобы в UI не было кривой смеси английского и русского там, где это пользовательский текст.\nИсправь:\n- login page dropdown\n- отображение ролей пользователей\n- seed display names, если это требуется для нормального русского UI\n\nОжидаемый результат:\n- имена тестовых пользователей в интерфейсе выглядят нормально и читаемо\n- роли в интерфейсе отображаются на русском\n- email в README остаются теми же, если это уже используется как идентификатор\n\nВажно:\n- не ломай сиды\n- не меняй email тестовых пользователей без крайней необходимости\n\n3) Улучши UX панели диспетчера без смены бизнес-логики\nСейчас таблица неудобна и требует сильного горизонтального скролла.\nНужно улучшить читаемость на обычном desktop-экране.\n\nДопустимые решения:\n- увеличить полезную ширину layout\n- сделать таблицу компактнее\n- сократить ширины колонок\n- форматировать даты компактно\n- объединить created_at / updated_at в более компактное отображение, если нужно\n- сделать действия визуально компактнее\n- уменьшить количество “визуального шума”\n\nВажно:\n- все обязательные данные заявки должны остаться видимыми\n- не переходить на тяжёлый фронтенд\n- не ломать существующие страницы stage 1\n\n4) Сделай понятное отображение для заявок без доступных действий\nДля статусов:\n- in_progress\n- done\n- canceled\n\nне добавляй новых активных действий диспетчеру.\n\nНо в колонке действий не должна быть пустота.\nСделай понятный UX-вариант, например:\n- "Действия недоступны"\nили\n- "Доступно только мастеру"\nили\n- "Нет доступных действий"\n\nДля done / in_progress отдельно уместно указать, что завершение относится к workflow мастера.\nДля canceled можно просто показать, что действий нет.\n\nВажно:\n- это только UI/UX-объяснение\n- не добавляй POST-действия для диспетчера на эти статусы\n- не меняй бизнес-правила assign/cancel\n\n5) README.md и DECISIONS.md\nОбнови только если изменения реально затрагивают:\n- русификацию пользователей/ролей в UI\n- логику отображения недоступных действий\n- улучшение таблицы/представления\n\nНе переписывай документы полностью.\n\n6) Важно\n- не меняй маршруты без необходимости\n- не меняй service/controller-логику assign/cancel без необходимости\n- не переходи к панели мастера\n- не реализуй race condition\n- не добавляй диспетчеру завершение заявки\n\nВ конце покажи:\n1. список изменённых файлов\n2. полное содержимое:\n   - tests/Feature/DispatcherPanelTest.php\n   - resources/views/auth/login.blade.php\n   - resources/views/dispatcher/index.blade.php\n   - resources/views/layouts/app.blade.php\n   - если менялся UserSeeder, покажи его\n   - README.md и DECISIONS.md, только если они реально менялись\n3. отдельно кратко поясни:\n   - как именно починен тест\n   - как теперь отображаются пользователи/роли\n   - как теперь объясняется отсутствие действий у done / in_progress / canceled\n\nОстановись после этого этапа.
+
+## 2026-03-10 04:42:15 +0000
+
+The user was unsatisfied with the code that the agent previously produced, which can be found as the latest commit in the git history.
+
+<PREVIOUS_PR_TITLE>
+Add dispatcher panel, service, views, enums, seeds, routes and feature tests
+</PREVIOUS_PR_TITLE>
+
+<PREVIOUS_PR_DESCRIPTION>
+### Motivation
+- Реализовать Stage‑2: добавить панель диспетчера с фильтром по статусу, назначением мастера и отменой заявки, сохраняя бизнес‑правила отдельно от представлений.
+- Русифицировать интерфейс на уровне отображения и предоставить демонстрационные сидовые данные для ручной проверки разных статусов.
+- Зафиксировать архитектурные решения в документации и подготовить код к следующему этапу (workflow мастера и защита race‑condition).
+
+### Description
+- Добавлен `DispatcherController` и `DispatcherRequestService`, которые инкапсулируют операции `assign` (только для `new`) и `cancel` (только для `new` и `assigned`) с понятными сообщениями об успехе/ошибке.
+- Добавлены маршруты `GET /dispatcher`, `POST /dispatcher/requests/{serviceRequest}/assign` и `POST /dispatcher/requests/{serviceRequest}/cancel`, а также новая view `resources/views/dispatcher/index.blade.php` с фильтром по статусу, таблицей заявок и компактными формами действий.
+- Расширены enum‑классы `RequestStatus` и `UserRole` методами `label()` для русских подписей в UI; обновлены `layouts/app.blade.php`, `home.blade.php` и `auth/login.blade.php` для единообразной русификации и улучшенной вёрстки таблицы.
+- Обновлены сиды: `UserSeeder` локализует имена тестовых пользователей, `RequestSeeder` добавляет идемпотентные демонстрационные заявки для статусов `new`, `assigned`, `in_progress`, `done`, `canceled`; дополнительно обновлены `README.md` и `DECISIONS.md` с описанием правил и тестовых пользователей.
+- Добавлен набор кадровых feature‑тестов `tests/Feature/DispatcherPanelTest.php` (список+фильтр, назначение, отмена, негативные сценарии) и прочие мелкие правки маршрутов/вью для консистентности.
+
+### Testing
+- Выполнены PHP синтаксические проверки (`php -l`) для ключевых добавленных файлов, которые не показали синтаксических ошибок. 
+- Проверено маршрутное оформление через `php artisan route:list` в локальной проверке и подтверждены маршруты диспетчера. 
+- `tests/Feature/HomePageTest.php` был запущен локально и проходит успешно; новый `tests/Feature/DispatcherPanelTest.php` добавлен и синтаксически корректен. 
+- Полный запуск тестовой сьюиты (`php artisan test`) не выполнен в этой среде, так как `vendor` отсутствует и `composer install`/dev‑зависимости не были установлены здесь.
+</PREVIOUS_PR_DESCRIPTION>
+
+<PREVIOUS_PR_DIFF_AND_COMMENTS>
+diff --git a/DECISIONS.md b/DECISIONS.md
+(File changed with 37 additions, 16 deletions)
+diff --git a/PROMPTS.md b/PROMPTS.md
+(File changed with 339 additions, 0 deletions)
+diff --git a/README.md b/README.md
+(File changed with 64 additions, 29 deletions)
+diff --git a/app/Enums/RequestStatus.php b/app/Enums/RequestStatus.php
+(File changed with 11 additions, 0 deletions)
+diff --git a/app/Enums/UserRole.php b/app/Enums/UserRole.php
+(File changed with 8 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/DispatcherController.php
+(File changed with 66 additions, 0 deletions)
+diff --git a/None b/app/Services/DispatcherRequestService.php
+(File changed with 54 additions, 0 deletions)
+diff --git a/database/seeders/RequestSeeder.php b/database/seeders/RequestSeeder.php
+(File changed with 26 additions, 0 deletions)
+diff --git a/database/seeders/UserSeeder.php b/database/seeders/UserSeeder.php
+(File changed with 3 additions, 3 deletions)
+diff --git a/resources/views/auth/login.blade.php b/resources/views/auth/login.blade.php
+(File changed with 4 additions, 2 deletions)
+diff --git a/resources/views/dispatcher/index.blade.php b/resources/views/dispatcher/index.blade.php
+(File changed with 96 additions, 1 deletions)
+diff --git a/resources/views/home.blade.php b/resources/views/home.blade.php
+(File changed with 7 additions, 3 deletions)
+diff --git a/resources/views/layouts/app.blade.php b/resources/views/layouts/app.blade.php
+(File changed with 13 additions, 4 deletions)
+diff --git a/resources/views/master/index.blade.php b/resources/views/master/index.blade.php
+(File changed with 1 additions, 1 deletions)
+diff --git a/routes/web.php b/routes/web.php
+(File changed with 4 additions, 1 deletions)
+diff --git a/None b/tests/Feature/DispatcherPanelTest.php
+(File changed with 187 additions, 0 deletions)
+</PREVIOUS_PR_DIFF_AND_COMMENTS>
+
+Please address any inline comments on the diff, as well as any additional instructions below.
+
+Перед любыми изменениями добавь этот полный запрос в PROMPTS.md с датой и временем.\n\nНужен ещё один очень узкий corrective pass для stage 2.\nНе делай PR и не делай merge.\nНе переходи к панели мастера.\nНе меняй бизнес-правила assign/cancel.\n\nИсправь только следующие вещи:\n\n1) Страница создания заявки\nСейчас success-message после создания заявки отображается обычным чёрным текстом.\nНужно:\n- сделать success-message визуально таким же заметным, как success-сообщения в панели диспетчера;\n- использовать текущий success-класс/стиль проекта, без изобретения нового тяжёлого UI.\n\n2) Формат отображения пользователей в логине\nСейчас формат в dropdown визуально неудачный: имя пользователя и роль выглядят как будто часть имени/фамилии.\nНужно сделать более понятный и аккуратный пользовательский формат.\n\nПредпочтительный вариант:\n- `Дарья Диспетчер (диспетчер)`\n- `Максим Мастер (мастер)`\n- `Елена Мастер (мастер)`\n\nВажно:\n- это только UI-отображение;\n- email не менять;\n- сиды не ломать;\n- role values в коде/БД не менять.\n\n3) Проверить и исправить фильтр панели диспетчера\nПо ручной проверке есть подозрение, что при фильтре по статусу `new` отображаются не те строки или теряются ожидаемые действия.\nНужно проверить и гарантировать корректное поведение:\n\n- фильтр использует raw enum values в query param:\n  - new\n  - assigned\n  - in_progress\n  - done\n  - canceled\n\n- labels "Новая / Назначена / В работе / Выполнена / Отменена" используются только для отображения\n\n- если выбран фильтр `new`, в таблице должны отображаться только заявки со статусом `new`\n\n- у заявок со статусом `new` в отфильтрованной таблице должны быть доступны:\n  - назначение мастера\n  - отмена заявки\n\n- если выбран фильтр `assigned`, должны отображаться только assigned-заявки и у них должна быть доступна отмена\n\n- для `in_progress`, `done`, `canceled` должны показываться только соответствующие пояснения без активных действий\n\n4) Сценарии после POST-действий при активном фильтре\nПроверь и исправь поведение после assign/cancel, если действие выполняется из уже отфильтрованной панели.\n\nОжидаемо:\n- query param фильтра сохраняется корректно в raw enum value\n- после assign/cancel редирект возвращает пользователя в корректный фильтр\n- страница после редиректа показывает правильный набор заявок и правильные действия\n\n5) Добавь/обнови feature-тесты так, чтобы они ловили именно этот сценарий\nНужно явно покрыть минимум такие вещи:\n- фильтр `new` показывает только new-заявки\n- в отфильтрованной new-выборке присутствуют формы assign/cancel\n- после выполнения действия из фильтрованной страницы редирект и итоговое состояние остаются корректными\n\nВажно:\n- не делать тесты хрупкими к русификации;\n- проверять уникальные данные заявок и ожидаемое состояние/маршрут;\n- не использовать слишком общие assert по строкам, которые могут встречаться в других местах UI\n\n6) README.md и DECISIONS.md\nОбновляй только если реально нужно по факту внесённых изменений.\nНе переписывай их полностью.\n\nВ конце покажи:\n1. список изменённых файлов\n2. полное содержимое:\n   - resources/views/requests/create.blade.php\n   - resources/views/auth/login.blade.php\n   - resources/views/dispatcher/index.blade.php\n   - tests/Feature/DispatcherPanelTest.php\n   - если менялся контроллер диспетчера — покажи его\n   - если менялся service диспетчера — покажи его\n   - README.md / DECISIONS.md только если реально менялись\n3. отдельно кратко поясни:\n   - как исправлено отображение success-message\n   - какой формат пользователей теперь в логине\n   - в чём была проблема фильтра/редиректа и как именно она исправлена\n\nОстановись после этого этапа.
