@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace Tests\Feature;
 
@@ -98,6 +98,46 @@ class MasterPanelTest extends TestCase
 
         $response->assertRedirect(route('master.dashboard'));
         $response->assertSessionHas('success', 'Заявка взята в работу.');
+
+        $this->assertDatabaseHas('requests', [
+            'id' => $serviceRequest->id,
+            'status' => RequestStatus::InProgress->value,
+            'assigned_to' => $master->id,
+        ]);
+    }
+
+    public function test_master_take_json_returns_conflict_on_repeated_call(): void
+    {
+        $master = User::query()->create([
+            'name' => 'Мастер Take JSON',
+            'email' => 'master.take.json@test.local',
+            'role' => UserRole::Master->value,
+        ]);
+
+        $serviceRequest = ServiceRequest::query()->create([
+            'client_name' => 'Клиент take json',
+            'phone' => '+7 700 210-00-01',
+            'address' => 'Адрес take json',
+            'problem_text' => 'Проблема take json',
+            'status' => RequestStatus::Assigned->value,
+            'assigned_to' => $master->id,
+        ]);
+
+        $firstResponse = $this->withSession(['auth_user_id' => $master->id])
+            ->postJson(route('master.requests.take', ['serviceRequest' => $serviceRequest]));
+
+        $firstResponse->assertOk();
+        $firstResponse->assertJson([
+            'message' => 'Заявка взята в работу.',
+        ]);
+
+        $secondResponse = $this->withSession(['auth_user_id' => $master->id])
+            ->postJson(route('master.requests.take', ['serviceRequest' => $serviceRequest]));
+
+        $secondResponse->assertStatus(409);
+        $secondResponse->assertJson([
+            'message' => 'Взять в работу можно только заявку в статусе "Назначена".',
+        ]);
 
         $this->assertDatabaseHas('requests', [
             'id' => $serviceRequest->id,
@@ -224,6 +264,61 @@ class MasterPanelTest extends TestCase
 
         $this->assertDatabaseHas('requests', [
             'id' => $serviceRequest->id,
+            'status' => RequestStatus::Assigned->value,
+            'assigned_to' => $master->id,
+        ]);
+    }
+
+    public function test_master_cannot_complete_foreign_or_invalid_status_request(): void
+    {
+        $master = User::query()->create([
+            'name' => 'Мастер Complete Negative',
+            'email' => 'master.complete.negative@test.local',
+            'role' => UserRole::Master->value,
+        ]);
+
+        $otherMaster = User::query()->create([
+            'name' => 'Чужой мастер complete',
+            'email' => 'other.master.complete.negative@test.local',
+            'role' => UserRole::Master->value,
+        ]);
+
+        $foreignRequest = ServiceRequest::query()->create([
+            'client_name' => 'Чужой клиент complete',
+            'phone' => '+7 700 510-00-01',
+            'address' => 'Чужой адрес complete',
+            'problem_text' => 'Чужая проблема complete',
+            'status' => RequestStatus::InProgress->value,
+            'assigned_to' => $otherMaster->id,
+        ]);
+
+        $invalidStatusRequest = ServiceRequest::query()->create([
+            'client_name' => 'Мой клиент не в работе',
+            'phone' => '+7 700 510-00-02',
+            'address' => 'Мой адрес complete invalid',
+            'problem_text' => 'Моя проблема complete invalid',
+            'status' => RequestStatus::Assigned->value,
+            'assigned_to' => $master->id,
+        ]);
+
+        $this->withSession(['auth_user_id' => $master->id])
+            ->post(route('master.requests.complete', ['serviceRequest' => $foreignRequest]))
+            ->assertRedirect(route('master.dashboard'))
+            ->assertSessionHas('error', 'Эта заявка не назначена вам.');
+
+        $this->withSession(['auth_user_id' => $master->id])
+            ->post(route('master.requests.complete', ['serviceRequest' => $invalidStatusRequest]))
+            ->assertRedirect(route('master.dashboard'))
+            ->assertSessionHas('error', 'Завершить можно только заявку в статусе "В работе".');
+
+        $this->assertDatabaseHas('requests', [
+            'id' => $foreignRequest->id,
+            'status' => RequestStatus::InProgress->value,
+            'assigned_to' => $otherMaster->id,
+        ]);
+
+        $this->assertDatabaseHas('requests', [
+            'id' => $invalidStatusRequest->id,
             'status' => RequestStatus::Assigned->value,
             'assigned_to' => $master->id,
         ]);
