@@ -5,7 +5,7 @@
         <h2>Создание заявки</h2>
 
         @if (session('status'))
-            <p>{{ session('status') }}</p>
+            <p class="status-success">{{ session('status') }}</p>
         @endif
 
         @if ($errors->any())
