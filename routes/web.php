@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispatcherController;
+use App\Http\Controllers\MasterController;
 use App\Http\Controllers\ServiceRequestController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,5 +23,7 @@ Route::middleware(['auth.session', 'role:dispatcher'])->group(function (): void 
 });
 
 Route::middleware(['auth.session', 'role:master'])->group(function (): void {
-    Route::get('/master', [DashboardController::class, 'master'])->name('master.dashboard');
+    Route::get('/master', [MasterController::class, 'index'])->name('master.dashboard');
+    Route::post('/master/requests/{serviceRequest}/take', [MasterController::class, 'take'])->name('master.requests.take');
+    Route::post('/master/requests/{serviceRequest}/complete', [MasterController::class, 'complete'])->name('master.requests.complete');
 });
