@@ -1258,3 +1258,71 @@ diff --git a/None b/tests/Feature/DispatcherPanelTest.php
 Please address any inline comments on the diff, as well as any additional instructions below.
 
 Перед любыми изменениями добавь этот полный запрос в PROMPTS.md с датой и временем.\n\nНужен ещё один очень узкий corrective pass для stage 2.\nНе делай PR и не делай merge.\nНе переходи к панели мастера.\nНе меняй бизнес-правила assign/cancel.\n\nИсправь только следующие вещи:\n\n1) Страница создания заявки\nСейчас success-message после создания заявки отображается обычным чёрным текстом.\nНужно:\n- сделать success-message визуально таким же заметным, как success-сообщения в панели диспетчера;\n- использовать текущий success-класс/стиль проекта, без изобретения нового тяжёлого UI.\n\n2) Формат отображения пользователей в логине\nСейчас формат в dropdown визуально неудачный: имя пользователя и роль выглядят как будто часть имени/фамилии.\nНужно сделать более понятный и аккуратный пользовательский формат.\n\nПредпочтительный вариант:\n- `Дарья Диспетчер (диспетчер)`\n- `Максим Мастер (мастер)`\n- `Елена Мастер (мастер)`\n\nВажно:\n- это только UI-отображение;\n- email не менять;\n- сиды не ломать;\n- role values в коде/БД не менять.\n\n3) Проверить и исправить фильтр панели диспетчера\nПо ручной проверке есть подозрение, что при фильтре по статусу `new` отображаются не те строки или теряются ожидаемые действия.\nНужно проверить и гарантировать корректное поведение:\n\n- фильтр использует raw enum values в query param:\n  - new\n  - assigned\n  - in_progress\n  - done\n  - canceled\n\n- labels "Новая / Назначена / В работе / Выполнена / Отменена" используются только для отображения\n\n- если выбран фильтр `new`, в таблице должны отображаться только заявки со статусом `new`\n\n- у заявок со статусом `new` в отфильтрованной таблице должны быть доступны:\n  - назначение мастера\n  - отмена заявки\n\n- если выбран фильтр `assigned`, должны отображаться только assigned-заявки и у них должна быть доступна отмена\n\n- для `in_progress`, `done`, `canceled` должны показываться только соответствующие пояснения без активных действий\n\n4) Сценарии после POST-действий при активном фильтре\nПроверь и исправь поведение после assign/cancel, если действие выполняется из уже отфильтрованной панели.\n\nОжидаемо:\n- query param фильтра сохраняется корректно в raw enum value\n- после assign/cancel редирект возвращает пользователя в корректный фильтр\n- страница после редиректа показывает правильный набор заявок и правильные действия\n\n5) Добавь/обнови feature-тесты так, чтобы они ловили именно этот сценарий\nНужно явно покрыть минимум такие вещи:\n- фильтр `new` показывает только new-заявки\n- в отфильтрованной new-выборке присутствуют формы assign/cancel\n- после выполнения действия из фильтрованной страницы редирект и итоговое состояние остаются корректными\n\nВажно:\n- не делать тесты хрупкими к русификации;\n- проверять уникальные данные заявок и ожидаемое состояние/маршрут;\n- не использовать слишком общие assert по строкам, которые могут встречаться в других местах UI\n\n6) README.md и DECISIONS.md\nОбновляй только если реально нужно по факту внесённых изменений.\nНе переписывай их полностью.\n\nВ конце покажи:\n1. список изменённых файлов\n2. полное содержимое:\n   - resources/views/requests/create.blade.php\n   - resources/views/auth/login.blade.php\n   - resources/views/dispatcher/index.blade.php\n   - tests/Feature/DispatcherPanelTest.php\n   - если менялся контроллер диспетчера — покажи его\n   - если менялся service диспетчера — покажи его\n   - README.md / DECISIONS.md только если реально менялись\n3. отдельно кратко поясни:\n   - как исправлено отображение success-message\n   - какой формат пользователей теперь в логине\n   - в чём была проблема фильтра/редиректа и как именно она исправлена\n\nОстановись после этого этапа.
+
+## 2026-03-10 04:51:58 +0000
+
+The user was unsatisfied with the code that the agent previously produced, which can be found as the latest commit in the git history.
+
+<PREVIOUS_PR_TITLE>
+Implement dispatcher panel with service, views, enums, seeds and feature tests
+</PREVIOUS_PR_TITLE>
+
+<PREVIOUS_PR_DESCRIPTION>
+### Motivation
+- Add a focused Stage‑2 dispatcher UI so dispatchers can list, filter, assign masters and cancel requests while keeping business rules out of Blade and preparing for the master workflow.
+- Provide clear, localized UI (Russian labels) for statuses and roles without changing internal enum values or business rules.
+- Provide idempotent demo seed data covering all statuses for manual verification and add feature tests that exercise dispatcher flows.
+
+### Description
+- Added a dedicated `DispatcherController` and `DispatcherRequestService` which encapsulate the `assign` (only from `new`) and `cancel` (only from `new` or `assigned`) rules and return user-facing messages.
+- Implemented dispatcher UI at `resources/views/dispatcher/index.blade.php` with status filter using raw enum values, compact table layout, localized labels via `RequestStatus::label()` and `UserRole::label()`, and post actions that preserve the `status` query param on redirect.  
+- Extended enums `app/Enums/RequestStatus.php` and `app/Enums/UserRole.php` with `label()` methods for Russian UI, adjusted `resources/views/*` (`home`, `auth/login`, `layouts/app`, `requests/create`, `master/index`) for consistent Russian display and improved UX (styles, success/error highlights). 
+- Added idempotent demo requests in `database/seeders/RequestSeeder.php` for `new`, `assigned`, `in_progress`, `done`, and `canceled`, updated `database/seeders/UserSeeder.php` to localize display names, registered new routes in `routes/web.php`, and added comprehensive feature tests in `tests/Feature/DispatcherPanelTest.php` covering list+filter, assign, cancel, filter-preserving redirects, and negative transitions.
+
+### Testing
+- Performed PHP syntax checks (`php -l`) on added/modified files and found no syntax errors.  
+- Verified route wiring with `php artisan route:list` and confirmed dispatcher routes are registered.  
+- Ran the existing `tests/Feature/HomePageTest.php` in the local quick check and it passed, while `tests/Feature/ServiceRequestCreationTest.php` had previously failed with `Class "Mockery" not found`.  
+- Added `tests/Feature/DispatcherPanelTest.php` and verified it is syntactically valid; a full `php artisan test` run was not executed in this environment because `vendor` is not installed here and `composer install` could not be completed in this run.
+</PREVIOUS_PR_DESCRIPTION>
+
+<PREVIOUS_PR_DIFF_AND_COMMENTS>
+diff --git a/DECISIONS.md b/DECISIONS.md
+(File changed with 37 additions, 16 deletions)
+diff --git a/PROMPTS.md b/PROMPTS.md
+(File changed with 406 additions, 0 deletions)
+diff --git a/README.md b/README.md
+(File changed with 64 additions, 29 deletions)
+diff --git a/app/Enums/RequestStatus.php b/app/Enums/RequestStatus.php
+(File changed with 11 additions, 0 deletions)
+diff --git a/app/Enums/UserRole.php b/app/Enums/UserRole.php
+(File changed with 8 additions, 0 deletions)
+diff --git a/None b/app/Http/Controllers/DispatcherController.php
+(File changed with 66 additions, 0 deletions)
+diff --git a/None b/app/Services/DispatcherRequestService.php
+(File changed with 54 additions, 0 deletions)
+diff --git a/database/seeders/RequestSeeder.php b/database/seeders/RequestSeeder.php
+(File changed with 26 additions, 0 deletions)
+diff --git a/database/seeders/UserSeeder.php b/database/seeders/UserSeeder.php
+(File changed with 3 additions, 3 deletions)
+diff --git a/resources/views/auth/login.blade.php b/resources/views/auth/login.blade.php
+(File changed with 4 additions, 2 deletions)
+diff --git a/resources/views/dispatcher/index.blade.php b/resources/views/dispatcher/index.blade.php
+(File changed with 96 additions, 1 deletions)
+diff --git a/resources/views/home.blade.php b/resources/views/home.blade.php
+(File changed with 7 additions, 3 deletions)
+diff --git a/resources/views/layouts/app.blade.php b/resources/views/layouts/app.blade.php
+(File changed with 13 additions, 4 deletions)
+diff --git a/resources/views/master/index.blade.php b/resources/views/master/index.blade.php
+(File changed with 1 additions, 1 deletions)
+diff --git a/resources/views/requests/create.blade.php b/resources/views/requests/create.blade.php
+(File changed with 1 additions, 1 deletions)
+diff --git a/routes/web.php b/routes/web.php
+(File changed with 4 additions, 1 deletions)
+diff --git a/None b/tests/Feature/DispatcherPanelTest.php
+(File changed with 284 additions, 0 deletions)
+</PREVIOUS_PR_DIFF_AND_COMMENTS>
+
+Please address any inline comments on the diff, as well as any additional instructions below.
+
+Перед любыми изменениями добавь этот полный запрос в PROMPTS.md с датой и временем.\n\nНужен очень узкий UI/data correction pass.\nНе делай PR и не делай merge.\nНе меняй бизнес-логику.\nНе меняй маршруты.\nНе меняй role values в коде/БД.\n\nИсправь только отображение пользователей на странице логина и display names тестовых пользователей.\n\nЧто нужно сделать:\n\n1) UserSeeder\nЗамени текущие display names тестовых пользователей на нормальные человеческие имена без вшитой должности в name.\nИспользуй, например:\n- dispatcher@example.com => Дарья Филосова\n- master1@example.com => Максим Орлов\n- master2@example.com => Елена Смирнова\n\nВажно:\n- email не менять\n- role values не менять\n- updateOrCreate сохранить\n- не ломать идемпотентность сидов\n\n2) Страница логина\nСделай список выбора пользователя визуально понятным и без дублирования роли в каждой строке.\n\nПредпочтительный вариант:\n- использовать optgroup:\n  - "Диспетчер"\n  - "Мастера"\n- внутри каждой группы показывать только имя пользователя, без повтора роли рядом\n\nОжидаемый вид:\n- Диспетчер\n  - Дарья Филосова\n- Мастера\n  - Максим Орлов\n  - Елена Смирнова\n\nЕсли optgroup по текущей структуре неудобен, допустим запасной вариант:\n- просто показывать только имя пользователя в option\n- без текста роли рядом\n\nНо optgroup предпочтительнее.\n\n3) Не трогать остальное\n- не менять логику логина\n- не менять контроллеры, кроме минимально необходимого для группировки пользователей на странице логина\n- не менять README/DECISIONS, если это не обязательно\n- не ломать текущие тесты\n\n4) В конце покажи:\n1. список изменённых файлов\n2. полное содержимое:\n   - database/seeders/UserSeeder.php\n   - resources/views/auth/login.blade.php\n   - если менялся AuthController.php — покажи его\n3. отдельно кратко поясни:\n   - как теперь устроен список пользователей на логине\n   - почему это не влияет на бизнес-логику\n\nОстановись после этого этапа.

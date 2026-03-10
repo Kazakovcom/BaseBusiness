@@ -8,11 +8,18 @@
             <label for="user_id">Выберите пользователя:</label>
             <select id="user_id" name="user_id" required>
                 <option value="">— Выберите —</option>
-                @foreach($users as $user)
-                    <option value="{{ $user->id }}">
-                        {{ $user->name }} ({{ \Illuminate\Support\Str::lower(\App\Enums\UserRole::tryFrom($user->role)?->label() ?? $user->role) }})
-                    </option>
-                @endforeach
+
+                <optgroup label="Диспетчер">
+                    @foreach($users->where('role', \App\Enums\UserRole::Dispatcher->value) as $user)
+                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                    @endforeach
+                </optgroup>
+
+                <optgroup label="Мастера">
+                    @foreach($users->where('role', \App\Enums\UserRole::Master->value) as $user)
+                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                    @endforeach
+                </optgroup>
             </select>
             <button type="submit">Войти</button>
         </form>

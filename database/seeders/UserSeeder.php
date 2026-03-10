@@ -12,17 +12,17 @@ class UserSeeder extends Seeder
     {
         User::query()->updateOrCreate(
             ['email' => 'dispatcher@example.com'],
-            ['name' => 'Дарья Диспетчер', 'role' => UserRole::Dispatcher->value]
+            ['name' => 'Дарья Филосова', 'role' => UserRole::Dispatcher->value]
         );
 
         User::query()->updateOrCreate(
             ['email' => 'master1@example.com'],
-            ['name' => 'Максим Мастер', 'role' => UserRole::Master->value]
+            ['name' => 'Максим Орлов', 'role' => UserRole::Master->value]
         );
 
         User::query()->updateOrCreate(
             ['email' => 'master2@example.com'],
-            ['name' => 'Елена Мастер', 'role' => UserRole::Master->value]
+            ['name' => 'Елена Смирнова', 'role' => UserRole::Master->value]
         );
     }
 }
