@@ -4,12 +4,12 @@
     <div class="card">
         <h2>Создание заявки</h2>
 
-        @if (session('status'))
-            <p class="status-success">{{ session('status') }}</p>
+        @if (session('success'))
+            <p class="status-success">{{ session('success') }}</p>
         @endif
 
         @if ($errors->any())
-            <ul>
+            <ul class="status-error" style="padding-left: 20px;">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
