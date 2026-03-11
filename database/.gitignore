@@ -1,6 +1,0 @@
-*
-!.gitignore
-!migrations/
-!migrations/*.php
-!seeders/
-!seeders/*.php
