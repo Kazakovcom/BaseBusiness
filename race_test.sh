@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # Manual race check helper for the "take in work" action.
-# By default it logs in as seeded master #2 and tries to find
-# the first available assigned request on /master automatically.
+# By default it logs in as seeded master #2.
+# If REQUEST_ID is not provided, the script loads /master and finds
+# the first available "take" action automatically.
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
 MASTER_USER_ID="${MASTER_USER_ID:-2}"
@@ -12,23 +13,38 @@ REQUEST_ID="${REQUEST_ID:-}"
 workdir="$(mktemp -d)"
 cookie_jar="$workdir/cookies.txt"
 login_page="$workdir/login.html"
+login_response="$workdir/login-response.html"
 master_page="$workdir/master.html"
 body1="$workdir/response1.json"
 body2="$workdir/response2.json"
 code1="$workdir/code1.txt"
 code2="$workdir/code2.txt"
+meta="$workdir/meta.txt"
 
 cleanup() {
   rm -rf "$workdir"
 }
 trap cleanup EXIT
 
+fail() {
+  echo "ERROR: $1" >&2
+  exit 1
+}
+
 extract_csrf() {
-  sed -n 's/.*name="_token" value="\([^"]*\)".*/\1/p' "$1" | head -n 1
+  grep -o 'name="_token"[[:space:]]\+value="[^"]*"' "$1" \
+    | sed 's/.*value="//; s/"$//' \
+    | head -n 1
 }
 
 extract_take_request_id() {
-  sed -n 's#.*action="[^"]*/master/requests/\([0-9][0-9]*\)/take".*#\1#p' "$1" | head -n 1
+  grep -o '/master/requests/[0-9][0-9]*/take' "$1" \
+    | sed 's#.*/\([0-9][0-9]*\)/take#\1#' \
+    | head -n 1
+}
+
+read_meta_field() {
+  sed -n "${1}p" "$meta"
 }
 
 perform_request() {
@@ -47,44 +63,64 @@ perform_request() {
 }
 
 echo "1/4 Fetching login page: $BASE_URL/login"
-curl -sS -c "$cookie_jar" "$BASE_URL/login" -o "$login_page"
+curl -sS -L -c "$cookie_jar" "$BASE_URL/login" -o "$login_page"
 
 csrf_token="$(extract_csrf "$login_page")"
 if [ -z "$csrf_token" ]; then
-  echo "Could not extract CSRF token from /login" >&2
-  exit 1
+  fail "Could not extract CSRF token from /login. Check BASE_URL=$BASE_URL and the login page markup."
 fi
 
 echo "2/4 Logging in as MASTER_USER_ID=$MASTER_USER_ID"
 curl -sS -L \
   -b "$cookie_jar" \
   -c "$cookie_jar" \
-  -X POST \
   --data-urlencode "_token=$csrf_token" \
   --data-urlencode "user_id=$MASTER_USER_ID" \
   "$BASE_URL/login" \
-  -o /dev/null
+  -o "$login_response" \
+  -w "%{http_code}\n%{url_effective}" > "$meta"
 
-echo "3/4 Loading master dashboard"
-curl -sS -b "$cookie_jar" "$BASE_URL/master" -o "$master_page"
+login_http_code="$(read_meta_field 1)"
+login_effective_url="$(read_meta_field 2)"
 
-csrf_token="$(extract_csrf "$master_page")"
-if [ -z "$csrf_token" ]; then
-  echo "Could not extract CSRF token from /master" >&2
-  exit 1
+if [ "$login_http_code" -lt 200 ] || [ "$login_http_code" -ge 400 ]; then
+  fail "Login request failed with HTTP $login_http_code."
 fi
 
-if [ -z "$REQUEST_ID" ]; then
+if [ -n "$REQUEST_ID" ]; then
+  echo "3/4 Using explicit REQUEST_ID=$REQUEST_ID"
+else
+  echo "3/4 Loading master dashboard to find an assigned request"
+  curl -sS -L \
+    -b "$cookie_jar" \
+    "$BASE_URL/master" \
+    -o "$master_page" \
+    -w "%{http_code}\n%{url_effective}" > "$meta"
+
+  master_http_code="$(read_meta_field 1)"
+  master_effective_url="$(read_meta_field 2)"
+
+  if [ "$master_http_code" -lt 200 ] || [ "$master_http_code" -ge 400 ]; then
+    fail "Failed to load /master after login: HTTP $master_http_code."
+  fi
+
+  if printf '%s' "$master_effective_url" | grep -Eq '/login/?$'; then
+    fail "Login did not create an authenticated session for /master. Check BASE_URL and MASTER_USER_ID=$MASTER_USER_ID."
+  fi
+
+  if printf '%s' "$master_effective_url" | grep -Evq '/master/?$'; then
+    fail "Expected to end on /master, but got redirected to $master_effective_url. Check that MASTER_USER_ID=$MASTER_USER_ID belongs to a master user."
+  fi
+
   REQUEST_ID="$(extract_take_request_id "$master_page")"
+
+  if [ -z "$REQUEST_ID" ]; then
+    fail "No assigned request with an available take action was found on /master for MASTER_USER_ID=$MASTER_USER_ID. Pass REQUEST_ID explicitly or re-seed the database."
+  fi
+
+  echo "Found REQUEST_ID=$REQUEST_ID on /master"
 fi
 
-if [ -z "$REQUEST_ID" ]; then
-  echo "No assigned request with available take action was found for master $MASTER_USER_ID." >&2
-  echo "Re-seed the database or pass REQUEST_ID explicitly." >&2
-  exit 1
-fi
-
-echo "Using REQUEST_ID=$REQUEST_ID"
 echo "4/4 Sending two parallel take requests"
 
 perform_request "$body1" "$code1" &
@@ -128,5 +164,4 @@ if [ "$success_count" -eq 1 ] && [ "$conflict_count" -eq 1 ]; then
   exit 0
 fi
 
-echo "Race check failed: expected exactly one HTTP 200 and one HTTP 409." >&2
-exit 1
+fail "Race check failed: expected exactly one HTTP 200 and one HTTP 409, got HTTP $http_code_1 and HTTP $http_code_2."
