@@ -30,6 +30,6 @@ class ServiceRequestController extends Controller
             'assigned_to' => null,
         ]);
 
-        return redirect()->route('requests.create')->with('status', 'Заявка создана.');
+        return redirect()->route('requests.create')->with('success', 'Заявка создана.');
     }
 }
